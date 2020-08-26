@@ -1562,7 +1562,6 @@ static long process_accept_req(struct file *filp, unsigned int cmd,
 		pr_err("No matching server with server id : %u found\n",
 						server_obj->server_id);
 		mutex_unlock(&g_smcinvoke_lock);
-		return -EINVAL;
 	}
 
 	if (server_info->state == SMCINVOKE_SERVER_STATE_DEFUNCT)

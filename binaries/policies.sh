@@ -1,73 +1,73 @@
 #!/system/bin/sh
 
-chmod 755 /data/local/tmp/magiskpolicy
+chmod 755 /dev/magiskpolicy
 
 # allow kernel to execute shell scripts and copy files to fuse partitions
-echo "1" > /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel toolbox_exec file { execute }" > /data/local/tmp/policy.log
+echo "1" > /dev/policy.log
+/dev/magiskpolicy --live "allow kernel toolbox_exec file { execute }" > /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "2" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel shell_exec file { execute }" >> /data/local/tmp/policy.log
+echo "2" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel shell_exec file { execute }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "3" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel toolbox_exec file { open }" >> /data/local/tmp/policy.log
+echo "3" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel toolbox_exec file { open }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "4" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel shell_exec file { open }" >> /data/local/tmp/policy.log
+echo "4" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel shell_exec file { open }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "5" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel toolbox_exec file { execute_no_trans }" >> /data/local/tmp/policy.log
+echo "5" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel toolbox_exec file { execute_no_trans }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "6" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel shell_exec file { execute_no_trans }" >> /data/local/tmp/policy.log
+echo "6" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel shell_exec file { execute_no_trans }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "7" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel toolbox_exec file { map }" >> /data/local/tmp/policy.log
+echo "7" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel toolbox_exec file { map }" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-echo "8" >> /data/local/tmp/policy.log
-/data/local/tmp/magiskpolicy --live "allow kernel shell_exec file { map }" >> /data/local/tmp/policy.log
+echo "8" >> /dev/policy.log
+/dev/magiskpolicy --live "allow kernel shell_exec file { map }" >> /dev/policy.log
 #/system/bin/sleep 0.1
-echo "9" >> /data/local/tmp/policy.log
+echo "9" >> /dev/policy.log
 
-/data/local/tmp/magiskpolicy --live "allow kernel toolbox_exec file { getattr }" >> /data/local/tmp/policy.log
-echo "a" >> /data/local/tmp/policy.log
-#/system/bin/sleep 0.1
-
-/data/local/tmp/magiskpolicy --live "allow kernel shell_exec file { getattr }" >> /data/local/tmp/policy.log
-echo "b" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel toolbox_exec file { getattr }" >> /dev/policy.log
+echo "a" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel shell_data_file dir { search }" >> /data/local/tmp/policy.log
-echo "c" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel shell_exec file { getattr }" >> /dev/policy.log
+echo "b" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel mnt_user_file dir { search }" >> /data/local/tmp/policy.log
-echo "d" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel shell_data_file dir { search }" >> /dev/policy.log
+echo "c" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel kernel capability { dac_read_search }" >> /data/local/tmp/policy.log
-echo "e" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel mnt_user_file dir { search }" >> /dev/policy.log
+echo "d" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel kernel capability { dac_override }" >> /data/local/tmp/policy.log
-echo "f" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel kernel capability { dac_read_search }" >> /dev/policy.log
+echo "e" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel fuse dir { search }" >> /data/local/tmp/policy.log
-echo "g" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel kernel capability { dac_override }" >> /dev/policy.log
+echo "f" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel fuse file { getattr }" >> /data/local/tmp/policy.log
-echo "h" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel fuse dir { search }" >> /dev/policy.log
+echo "g" >> /dev/policy.log
 #/system/bin/sleep 0.1
 
-/data/local/tmp/magiskpolicy --live "allow kernel fuse file { open }" >> /data/local/tmp/policy.log
-echo "i" >> /data/local/tmp/policy.log
+/dev/magiskpolicy --live "allow kernel fuse file { getattr }" >> /dev/policy.log
+echo "h" >> /dev/policy.log
+#/system/bin/sleep 0.1
+
+/dev/magiskpolicy --live "allow kernel fuse file { open }" >> /dev/policy.log
+echo "i" >> /dev/policy.log
 #/system/bin/sleep 0.1

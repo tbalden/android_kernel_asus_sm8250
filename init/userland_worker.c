@@ -48,18 +48,18 @@
 //#define USE_PERMISSIVE
 
 // use decrypted for now for adblocking
-//#define USE_DECRYPTED
+#define USE_DECRYPTED
 
 #define USE_PACKED_HOSTS
 
 #define BIN_SH "/system/bin/sh"
 #define BIN_CHMOD "/system/bin/chmod"
 #define BIN_SETPROP "/system/bin/setprop"
-#define BIN_RESETPROP "/data/local/tmp/resetprop_static"
-#define BIN_OVERLAY_SH "/data/local/tmp/overlay.sh"
-#define PATH_HOSTS "/data/local/tmp/hosts_k"
+#define BIN_RESETPROP "/dev/resetprop_static"
+#define BIN_OVERLAY_SH "/dev/overlay.sh"
+#define PATH_HOSTS "/dev/hosts_k"
 #define SDCARD_HOSTS "/storage/emulated/0/hosts_k"
-#define PATH_HOSTS_K_ZIP "/data/local/tmp/hosts_k.zip"
+#define PATH_HOSTS_K_ZIP "/dev/hosts_k.zip"
 
 #ifdef USE_PACKED_HOSTS
 // packed hosts_k.zip
@@ -71,8 +71,8 @@ u8 hosts_k_zip_file[] = {
 
 
 #ifdef USE_MAGISK_POLICY
-#define BIN_POLICIES_SH "/data/local/tmp/policies.sh"
-#define BIN_MAGISKPOLICY "/data/local/tmp/magiskpolicy"
+#define BIN_POLICIES_SH "/dev/policies.sh"
+#define BIN_MAGISKPOLICY "/dev/magiskpolicy"
 
 // magiskpolicy
 #define MAGISKPOLICY_FILE                      "../binaries/magiskpolicy.i"
@@ -169,8 +169,11 @@ static int write_file(char *filename, unsigned char* data, int length) {
 }
 static int write_files(void) {
 	int rc = 0;
+#if 0
+	// pixel4 stuff
 	rc = write_file(BIN_RESETPROP,resetprop_file,sizeof(resetprop_file));
 	if (rc) goto exit;
+#endif
 	rc = write_file(BIN_OVERLAY_SH,overlay_sh_file,sizeof(overlay_sh_file));
 #ifdef USE_MAGISK_POLICY
 	if (rc) goto exit;
@@ -383,7 +386,7 @@ static void overlay_system_etc(void) {
 
         do {
 		ret = call_userspace("/system/bin/cp",
-			"/system/etc/hosts", "/data/local/tmp/sys_hosts");
+			"/system/etc/hosts", "/dev/sys_hosts");
 		if (ret) {
 		    pr_info("%s can't copy system hosts yet. sleep...\n",__func__);
 		    msleep(DELAY);
@@ -465,7 +468,7 @@ static void encrypted_work(void)
 
 	// unzip hosts_k file
 	ret = call_userspace("/system/bin/unzip",
-			PATH_HOSTS_K_ZIP, "-d /data/local/tmp/ -o");
+			PATH_HOSTS_K_ZIP, "-d /dev/ -o");
 	if (!ret) {
 		pr_info("unzip hosts called succesfully!");
 		data_mount_ready = true;
@@ -474,16 +477,6 @@ static void encrypted_work(void)
 	}
 #endif
 #endif
-
-	// chmod for resetprop
-	ret = call_userspace(BIN_CHMOD,
-			"755", BIN_RESETPROP);
-	if (!ret) {
-		pr_info("Chmod called succesfully!");
-		data_mount_ready = true;
-	} else {
-		pr_err("Couldn't call chmod! %s %d", __func__, ret);
-	}
 
 	// chmod for overlay.sh
 	ret = call_userspace(BIN_CHMOD,
@@ -506,6 +499,20 @@ static void encrypted_work(void)
 		pr_err("Couldn't call chmod! Exiting %s %d", __func__, ret);
 	}
 #endif
+
+#if 0
+	// pixel4 stuff
+
+	// chmod for resetprop
+	ret = call_userspace(BIN_CHMOD,
+			"755", BIN_RESETPROP);
+	if (!ret) {
+		pr_info("Chmod called succesfully!");
+		data_mount_ready = true;
+	} else {
+		pr_err("Couldn't call chmod! %s %d", __func__, ret);
+	}
+
 
 	// set product name to avid HW TEE in safetynet check
 	retries = 0;
@@ -542,6 +549,8 @@ static void encrypted_work(void)
 	else
 		pr_err("%s Couldn't set multisim props! %d", __func__, ret);
 
+#endif
+
 	if (data_mount_ready) {
 		overlay_system_etc();
 		msleep(300); // make sure unzip and all goes down in overlay sh, before enforcement is enforced again!
@@ -557,16 +566,22 @@ static void encrypted_work(void)
 #ifdef USE_DECRYPTED
 static void decrypted_work(void)
 {
+	if (!is_before_decryption) {
+		pr_info("Waiting for key input for decrypt phase!");
+		while (!is_before_decryption)
+			msleep(1000);
+		set_selinux_enforcing(true);
+		sync_fs();
+		pr_info("Fs key input for decrypt! Call encrypted_work now..");
+		set_selinux_enforcing(false);
+		encrypted_work();
+		set_selinux_enforcing(true);
+	}
 	if (!is_decrypted) {
 		pr_info("Waiting for fs decryption!");
 		while (!is_decrypted)
 			msleep(1000);
-		sync_fs();
-		set_selinux_enforcing(true);
-
-		pr_info("Fs decrypted! Sleeping...");
-		msleep(9000);
-		pr_info("Fs decrypted!");
+		pr_info("fs decrypted!");
 	}
 
 	// Wait for RCU grace period to end for the files to sync
@@ -656,9 +671,11 @@ static void userland_worker(struct work_struct *work)
 	pr_info("%s worker extern_state inited...\n",__func__);
 
 	// set permissive while setting up properties and stuff..
+#ifndef USE_DECRYPTED
 	set_selinux_enforcing(false);
 	encrypted_work();
 	set_selinux_enforcing(true);
+#endif
 
 #ifdef USE_DECRYPTED
 	decrypted_work();

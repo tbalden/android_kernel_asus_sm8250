@@ -16,8 +16,14 @@
 #define UCI_SYS_FILE_END "uci_sys.cfg"
 #define UCI_KERNEL_FILE_END "uci_kernel.out"
 
-#define UCI_HOSTS_FILE "/storage/emulated/0/hosts_k"
+#define UCI_HOSTS_FILE_SD "/storage/emulated/0/hosts_k"
+#define UCI_HOSTS_FILE "/dev/hosts_k"
 #define UCI_HOSTS_FILE_END "hosts_k"
+
+#define USERLAND_HOSTS_ZIP "/dev/hosts_k.zip"
+#define USERLAND_OVERLAY_SH "/dev/overlay.sh"
+#define USERLAND_HOSTS_ZIP_END "hosts_k.zip"
+#define USERLAND_OVERLAY_SH_END "overlay.sh"
 
 // pstore files to grant access to, without superuser elevation
 #define UCI_PSTORE_FILE_0 "/sys/fs/pstore/console-ramoops"

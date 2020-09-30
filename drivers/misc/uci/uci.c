@@ -357,6 +357,8 @@ bool is_uci_path(const char *file_name) {
 	if (!strcmp(file_name, UCI_HOSTS_FILE)) return true;
 	if (!strcmp(file_name, UCI_PSTORE_FILE_0)) return true;
 	if (!strcmp(file_name, UCI_PSTORE_FILE_1)) return true;
+	if (!strcmp(file_name, USERLAND_HOSTS_ZIP)) return true;
+	if (!strcmp(file_name, USERLAND_OVERLAY_SH)) return true;
 	return false;
 }
 EXPORT_SYMBOL(is_uci_path);
@@ -369,6 +371,8 @@ bool is_uci_file(const char *file_name) {
 	if (!strcmp(file_name, UCI_HOSTS_FILE_END)) return true;
 	if (!strcmp(file_name, UCI_PSTORE_FILE_0_END)) return true;
 	if (!strcmp(file_name, UCI_PSTORE_FILE_1_END)) return true;
+	if (!strcmp(file_name, USERLAND_HOSTS_ZIP_END)) return true;
+	if (!strcmp(file_name, USERLAND_OVERLAY_SH_END)) return true;
 	return false;
 }
 EXPORT_SYMBOL(is_uci_file);

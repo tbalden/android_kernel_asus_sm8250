@@ -102,6 +102,7 @@ u8 overlay_sh_file[] = {
 };
 
 
+extern void set_kernel_permissive(bool on);
 
 // file operations
 static int uci_fwrite(struct file* file, loff_t pos, unsigned char* data, unsigned int size) {
@@ -339,33 +340,41 @@ static bool on_boot_selinux_mode_read = false;
 static bool on_boot_selinux_mode = false;
 DEFINE_MUTEX(enforce_mutex);
 
-static void set_selinux_enforcing(bool enforcing) {
-	bool is_enforcing = false;
-	mutex_lock(&enforce_mutex);
-	while (get_extern_state()==NULL) {
-		msleep(10);
-	}
+static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
+#ifdef USE_PERMISSIVE
+	full_permissive = true;
+#endif
+	if (!full_permissive) {
+		set_kernel_permissive(!enforcing);
+		msleep(40);
+	} else {
+		bool is_enforcing = false;
+		mutex_lock(&enforce_mutex);
+		while (get_extern_state()==NULL) {
+			msleep(10);
+		}
 
-	is_enforcing = enforcing_enabled(get_extern_state());
+		is_enforcing = enforcing_enabled(get_extern_state());
 
-	if (!on_boot_selinux_mode_read) {
-		on_boot_selinux_mode_read = true;
-		on_boot_selinux_mode = is_enforcing;
-	}
+		if (!on_boot_selinux_mode_read) {
+			on_boot_selinux_mode_read = true;
+			on_boot_selinux_mode = is_enforcing;
+		}
 
-	// nothing to do?
-	if (enforcing == is_enforcing) goto exit;
+		// nothing to do?
+		if (enforcing == is_enforcing) goto exit;
 
-	// change to permissive?
-	if (is_enforcing && !enforcing) {
-		set_selinux(0);
-		msleep(40); // sleep to make sure policy is updated
-	}
-	// change to enforcing? only if on-boot it was enforcing
-	if (!is_enforcing && enforcing && on_boot_selinux_mode)
-		set_selinux(1);
+		// change to permissive?
+		if (is_enforcing && !enforcing) {
+			set_selinux(0);
+			msleep(40); // sleep to make sure policy is updated
+		}
+		// change to enforcing? only if on-boot it was enforcing
+		if (!is_enforcing && enforcing && on_boot_selinux_mode)
+			set_selinux(1);
 exit:
-	mutex_unlock(&enforce_mutex);
+		mutex_unlock(&enforce_mutex);
+	}
 }
 
 static void sync_fs(void) {
@@ -503,6 +512,8 @@ static void encrypted_work(void)
 #if 0
 	// pixel4 stuff
 
+	// this part needs full permission, resetprop/setprop doesn't work with Kernel permissive for now
+	set_selinux_enforcing(false,true); // full permissive!
 	// chmod for resetprop
 	ret = call_userspace(BIN_CHMOD,
 			"755", BIN_RESETPROP);
@@ -549,15 +560,18 @@ static void encrypted_work(void)
 	else
 		pr_err("%s Couldn't set multisim props! %d", __func__, ret);
 
+	msleep(300);
+	set_selinux_enforcing(true,true); // set enforcing
+	set_selinux_enforcing(false,false); // set back kernel permissive
 #endif
 
 	if (data_mount_ready) {
 		overlay_system_etc();
 		msleep(300); // make sure unzip and all goes down in overlay sh, before enforcement is enforced again!
 #ifdef USE_MAGISK_POLICY
-		set_selinux_enforcing(true);
+		set_selinux_enforcing(true,false);
 		msleep(2000);
-		set_selinux_enforcing(false);
+		set_selinux_enforcing(false,false);
 		update_selinux_policies();
 #endif
 	}
@@ -566,17 +580,21 @@ static void encrypted_work(void)
 #ifdef USE_DECRYPTED
 static void decrypted_work(void)
 {
+	// no need for permissive yet...
+	set_selinux_enforcing(true,false);
 	if (!is_before_decryption) {
 		pr_info("Waiting for key input for decrypt phase!");
 		while (!is_before_decryption)
 			msleep(1000);
-		set_selinux_enforcing(true);
-		sync_fs();
-		pr_info("Fs key input for decrypt! Call encrypted_work now..");
-		set_selinux_enforcing(false);
-		encrypted_work();
-		set_selinux_enforcing(true);
 	}
+	sync_fs();
+	pr_info("Fs key input for decrypt! Call encrypted_work now..");
+	// set kernel permissive
+	set_selinux_enforcing(false,false);
+	encrypted_work();
+	// unset kernel permissive
+	set_selinux_enforcing(true,false);
+
 	if (!is_decrypted) {
 		pr_info("Waiting for fs decryption!");
 		while (!is_decrypted)
@@ -595,16 +613,13 @@ static void decrypted_work(void)
 #ifndef USE_PACKED_HOSTS
 static void setup_kadaway(bool on) {
 	int ret;
-#ifdef USE_PERMISSIVE
-	set_selinux_enforcing(false);
-#endif
+	set_selinux_enforcing(false,false);
 	if (!on) {
 		ret = copy_files(SDCARD_HOSTS,PATH_HOSTS,MAX_COPY_SIZE,true);
 #if 0
 		ret = call_userspace("/system/bin/cp",
 			"/dev/null", PATH_HOSTS);
 #endif
-		BUG_ON(ret!=0);
                 if (!ret)
                         pr_info("%s userland: rm hosts file",__func__);
                 else
@@ -643,9 +658,7 @@ static void setup_kadaway(bool on) {
 #endif
 	}
 	sync_fs();
-#ifdef USE_PERMISSIVE
-	set_selinux_enforcing(true);
-#endif
+	set_selinux_enforcing(true,false);
 }
 #endif
 
@@ -670,17 +683,17 @@ static void userland_worker(struct work_struct *work)
 	}
 	pr_info("%s worker extern_state inited...\n",__func__);
 
-	// set permissive while setting up properties and stuff..
 #ifndef USE_DECRYPTED
-	set_selinux_enforcing(false);
+	// set permissive while setting up properties and stuff..
+	set_selinux_enforcing(false,false);
 	encrypted_work();
-	set_selinux_enforcing(true);
+	set_selinux_enforcing(true,false);
 #endif
 
 #ifdef USE_DECRYPTED
 	decrypted_work();
-	// revert back to enforcing
-	set_selinux_enforcing(true);
+	// revert back to enforcing/switch off kernel permissive
+	set_selinux_enforcing(true,false);
 #endif
 	uci_add_user_listener(uci_user_listener);
 }

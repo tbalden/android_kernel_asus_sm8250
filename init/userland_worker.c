@@ -103,6 +103,7 @@ u8 overlay_sh_file[] = {
 
 
 extern void set_kernel_permissive(bool on);
+extern void set_full_permissive_kernel_suppressed(bool on);
 
 // file operations
 static int uci_fwrite(struct file* file, loff_t pos, unsigned char* data, unsigned int size) {
@@ -349,6 +350,9 @@ static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
 		msleep(40);
 	} else {
 		bool is_enforcing = false;
+
+		set_kernel_permissive(!enforcing);
+
 		mutex_lock(&enforce_mutex);
 		while (get_extern_state()==NULL) {
 			msleep(10);
@@ -360,6 +364,15 @@ static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
 			on_boot_selinux_mode_read = true;
 			on_boot_selinux_mode = is_enforcing;
 		}
+
+#ifndef USE_PERMISSIVE
+		if (on_boot_selinux_mode) { // system is by default SELinux enforced...
+			// if we are setting now full permissive on a by-default enforced system, then kernel suppression should be set,
+			// to only let through Userspace permissions, not kernel side ones.
+			pr_info("%s [userland] kernel permissive : setting full permissive kernel suppressed: %u\n",!enforcing);
+			set_full_permissive_kernel_suppressed(!enforcing);
+		}
+#endif
 
 		// nothing to do?
 		if (enforcing == is_enforcing) goto exit;

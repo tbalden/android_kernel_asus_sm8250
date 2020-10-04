@@ -8,11 +8,19 @@ void set_kernel_permissive(bool on) {
 }
 EXPORT_SYMBOL(set_kernel_permissive);
 
+// set this if only userspace should have permissivity,
+// ...and in-kernel decisions should be still denied.
+static bool full_permissive_kernel_suppressed = false;
+void set_full_permissive_kernel_suppressed(bool on) {
+        full_permissive_kernel_suppressed = on;
+}
+EXPORT_SYMBOL(set_full_permissive_kernel_suppressed);
+
 // source class
 #define KERNEL_SOURCE "u:r:kernel:s0"
 
 // target class list
-static char targets[13][255] = {
+static char targets[15][255] = {
                 "u:object_r:toolbox_exec:s0",
                 "u:object_r:shell_exec:s0",
                 "u:r:kernel:s0",
@@ -26,5 +34,7 @@ static char targets[13][255] = {
                 "u:object_r:default_prop:s0",
                 "u:object_r:system_file:s0",
                 "u:object_r:device:s0",
+                "u:object_r:kmsg_device:s0", // needed for dmesg
+                "u:object_r:properties_serial:s0", // needed for setprop
         };
 

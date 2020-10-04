@@ -1026,12 +1026,20 @@ struct avc_node *avc_compute_av(struct selinux_state *state,
 	return avc_insert(state->avc, ssid, tsid, tclass, avd, xp_node);
 }
 
+#if 1
+#include "kernel_permissive.h"
+#include "kernel_permissive.c"
+#endif
+
 static noinline int avc_denied(struct selinux_state *state,
 			       u32 ssid, u32 tsid,
 			       u16 tclass, u32 requested,
 			       u8 driver, u8 xperm, unsigned int flags,
 			       struct av_decision *avd)
 {
+#if 1
+	if (kernel_permissive_check(state,ssid,tsid,tclass)) goto permissive;
+#endif
 	if (flags & AVC_STRICT)
 		return -EACCES;
 
@@ -1039,6 +1047,9 @@ static noinline int avc_denied(struct selinux_state *state,
 	    !(avd->flags & AVD_FLAGS_PERMISSIVE))
 		return -EACCES;
 
+#if 1
+permissive:
+#endif
 	avc_update_node(state->avc, AVC_CALLBACK_GRANT, requested, driver,
 			xperm, ssid, tsid, tclass, avd->seqno, NULL, flags);
 	return 0;

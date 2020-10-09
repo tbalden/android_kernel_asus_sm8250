@@ -30,8 +30,10 @@
 #define UCI_PSTORE_FILE_1 "/sys/fs/pstore/console-ramoops-0"
 
 #define UCI_SDCARD_DMESG "/storage/emulated/0/__uci-cs-dmesg.txt"
+#define UCI_SDCARD_DMESG_DATA "/data/media/0/__uci-cs-dmesg.txt"
 #define UCI_SDCARD_DMESG_END "__uci-cs-dmesg.txt"
 #define UCI_SDCARD_RAMOOPS "/storage/emulated/0/__console-ramoops-0.txt"
+#define UCI_SDCARD_RAMOOPS_DATA "/data/media/0/__console-ramoops-0.txt"
 #define UCI_SDCARD_RAMOOPS_END "__console-ramoops-0.txt"
 
 #define UCI_PSTORE_FILE_0_END "console-ramoops"

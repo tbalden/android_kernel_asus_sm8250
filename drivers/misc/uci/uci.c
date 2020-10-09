@@ -143,6 +143,8 @@ static int queue_length = 0;
 static int stamp = 0;
 static char stamps[10][3] = {"0\n","1\n","2\n","3\n","4\n","5\n","6\n","7\n","8\n","9\n"};
 
+// be aware that writing to sdcardfs needs a file creation from userspace app, 
+// ...otherwise encrpytion key for file cannot be added. Make sure to touch files from app!
 void write_uci_krnl_cfg_file(void) {
 	// locking
 	struct file*fp = NULL;
@@ -373,6 +375,8 @@ bool is_uci_path(const char *file_name) {
 	if (!strcmp(file_name, USERLAND_OVERLAY_SH)) return true;
 	if (!strcmp(file_name, UCI_SDCARD_DMESG)) return true;
 	if (!strcmp(file_name, UCI_SDCARD_RAMOOPS)) return true;
+	if (!strcmp(file_name, UCI_SDCARD_DMESG_DATA)) return true;
+	if (!strcmp(file_name, UCI_SDCARD_RAMOOPS_DATA)) return true;
 	return false;
 }
 EXPORT_SYMBOL(is_uci_path);

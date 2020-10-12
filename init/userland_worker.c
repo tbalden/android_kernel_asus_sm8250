@@ -29,9 +29,6 @@
 
 #include <linux/uci/uci.h>
 
-#include "../security/selinux/include/security.h"
-#include "../security/selinux/include/avc_ss_reset.h"
-
 #define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
 #define INITIAL_SIZE 4
 #define MAX_CHAR 128
@@ -308,17 +305,10 @@ static int call_userspace(char *binary, char *param0, char *param1, char *messag
 	return ret;
 }
 
-static inline void set_selinux(int value)
+static inline void __set_selinux(int value)
 {
 	pr_info("%s Setting selinux state: %d", __func__, value);
-
-	enforcing_set(get_extern_state(), value);
-	if (value)
-		avc_ss_reset(get_extern_state()->avc, 0);
-	selnl_notify_setenforce(value);
-	selinux_status_update_setenforce(get_extern_state(), value);
-	if (!value)
-		call_lsm_notifier(LSM_POLICY_CHANGE, NULL);
+	set_selinux(value);
 }
 
 static bool on_boot_selinux_mode_read = false;
@@ -344,7 +334,7 @@ static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
 			msleep(10);
 		}
 
-		is_enforcing = enforcing_enabled(get_extern_state());
+		is_enforcing = get_enforce_value();
 
 		if (!on_boot_selinux_mode_read) {
 			on_boot_selinux_mode_read = true;
@@ -365,12 +355,12 @@ static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
 
 		// change to permissive?
 		if (is_enforcing && !enforcing) {
-			set_selinux(0);
+			__set_selinux(0);
 			msleep(40); // sleep to make sure policy is updated
 		}
 		// change to enforcing? only if on-boot it was enforcing
 		if (!is_enforcing && enforcing && on_boot_selinux_mode)
-			set_selinux(1);
+			__set_selinux(1);
 exit:
 		mutex_unlock(&enforce_mutex);
 	}

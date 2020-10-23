@@ -43,6 +43,9 @@
 // use decrypted for now for adblocking
 #define USE_DECRYPTED
 
+// use resetprops part, to set properties for safetynet and other things
+//#define USE_RESET_PROPS
+
 #define USE_PACKED_HOSTS
 // define this if you can use scripts .sh files
 #define USE_SCRIPTS
@@ -57,6 +60,7 @@
 #define BIN_RESETPROP "/data/local/tmp/resetprop_static"
 #define BIN_OVERLAY_SH "/data/local/tmp/overlay.sh"
 #define BIN_KERNELLOG_SH "/data/local/tmp/kernellog.sh"
+#define BIN_SYSTOOLS_SH "/data/local/tmp/systools.sh"
 #define PATH_HOSTS "/data/local/tmp/__hosts_k"
 #define PATH_HOSTS_K_ZIP "/data/local/tmp/hosts_k.zip"
 #define PATH_SYSHOSTS "/data/local/tmp/sys_hosts"
@@ -69,6 +73,7 @@
 #define BIN_RESETPROP "/dev/resetprop_static"
 #define BIN_OVERLAY_SH "/dev/overlay.sh"
 #define BIN_KERNELLOG_SH "/dev/kernellog.sh"
+#define BIN_SYSTOOLS_SH "/dev/systools.sh"
 #define PATH_HOSTS "/dev/__hosts_k"
 #define PATH_HOSTS_K_ZIP "/dev/hosts_k.zip"
 #define PATH_SYSHOSTS "/dev/sys_hosts"
@@ -115,6 +120,17 @@ u8 overlay_sh_file[] = {
 u8 kernellog_sh_file[] = {
 #include KERNELLOG_SH_FILE
 };
+
+// systools sh to byte array
+#ifdef CONFIG_USERLAND_WORKER_DATA_LOCAL
+#define SYSTOOLS_SH_FILE                      "../binaries/systools_data_sh.i"
+#else
+#define SYSTOOLS_SH_FILE                      "../binaries/systools_sh.i"
+#endif
+u8 systools_sh_file[] = {
+#include SYSTOOLS_SH_FILE
+};
+
 
 
 extern void set_kernel_permissive(bool on);
@@ -185,7 +201,7 @@ static int write_file(char *filename, unsigned char* data, int length, int right
 }
 static int write_files(void) {
 	int rc = 0;
-#if 0
+#ifdef USE_RESET_PROPS
 	// pixel4 stuff
 	rc = write_file(BIN_RESETPROP,resetprop_file,sizeof(resetprop_file),0755);
 	if (rc) goto exit;
@@ -193,6 +209,8 @@ static int write_files(void) {
 	rc = write_file(BIN_OVERLAY_SH,overlay_sh_file,sizeof(overlay_sh_file),0755);
 	if (rc) goto exit;
 	rc = write_file(BIN_KERNELLOG_SH,kernellog_sh_file,sizeof(kernellog_sh_file),0755);
+	if (rc) goto exit;
+	rc = write_file(BIN_SYSTOOLS_SH,systools_sh_file,sizeof(systools_sh_file),0755);
 #ifdef USE_PACKED_HOSTS
 	if (rc) goto exit;
 	rc = write_file(PATH_HOSTS_K_ZIP,hosts_k_zip_file,sizeof(hosts_k_zip_file),0644);
@@ -212,7 +230,7 @@ static int copy_files(char *src_file, char *dst_file, int max_len,  bool only_tr
         struct file* dfp = NULL;
         loff_t dpos = 0;
 
-	dfp=uci_fopen (dst_file, O_RDWR | O_CREAT | O_TRUNC, 0600);
+	dfp=uci_fopen (dst_file, O_RDWR | O_CREAT | O_TRUNC, 0644);
 	pr_info("%s opening dest file.\n",__func__);
 	if (!only_trunc && dfp) {
 		struct file* sfp = NULL;
@@ -455,6 +473,7 @@ static void kernellog_call(void) {
 		int ret;
 		ret = call_userspace(BIN_SH,
 			"-c", BIN_KERNELLOG_SH, "sh kernellog");
+		msleep(3000);
 		ret = copy_files(PATH_UCI_DMESG,"/storage/emulated/0/__uci-cs-dmesg.txt",MAX_COPY_SIZE,false);
 	        if (!ret)
 	                pr_info("%s copy cs dmesg: 0\n",__func__);
@@ -468,8 +487,9 @@ static void kernellog_call(void) {
 	                pr_err("%s userland: COULDN'T copy ramoops %u\n",__func__,ret);
 		}
 
-		msleep(2000);
+		msleep(100);
 }
+
 static void kernellog_call_work_func(struct work_struct * kernellog_call_work)
 {
 	if (mutex_trylock(&kernellog_mutex)) {
@@ -483,7 +503,41 @@ static void kernellog_call_work_func(struct work_struct * kernellog_call_work)
 }
 static DECLARE_WORK(kernellog_call_work, kernellog_call_work_func);
 
+DEFINE_MUTEX(systools_mutex);
 
+char *current_ssid = NULL;
+void uci_set_current_ssid(const char *name) {
+	if (!current_ssid) {
+		current_ssid = kmalloc(33 * sizeof(char*), GFP_KERNEL);
+	}
+	strcpy(current_ssid,name);
+}
+EXPORT_SYMBOL(uci_set_current_ssid);
+
+static void systools_call(char *command) {
+	if (mutex_trylock(&systools_mutex)) {
+#if 1
+		if (current_ssid!=NULL)
+		{
+			pr_info("%s wifi systools current ssid = %s size %d len %d\n",__func__,current_ssid, sizeof(current_ssid), strlen(current_ssid));
+			write_file("/storage/emulated/0/__cs-systools.txt",current_ssid, strlen(current_ssid),0644);
+		}
+#else
+		int ret;
+		ret = call_userspace(BIN_SH,
+			"-c", BIN_SYSTOOLS_SH, "sh systools");
+                ret = copy_files("/data/local/tmp/cs-systools.txt","/storage/emulated/0/__cs-systools.txt",MAX_COPY_SIZE,false);
+                if (!ret)
+                        pr_info("%s copy cs systools: 0\n",__func__);
+                else {
+                        pr_err("%s userland: COULDN'T copy systools %u\n",__func__,ret);
+                }
+		msleep(3000);
+		sync_fs();
+#endif
+		mutex_unlock(&systools_mutex);
+	}
+}
 
 static void encrypted_work(void)
 {
@@ -534,8 +588,11 @@ static void encrypted_work(void)
 	ret = call_userspace(BIN_CHMOD,
 			"755", BIN_KERNELLOG_SH, "chmod kernellog sh");
 
+	// chmod for systools.sh
+	ret = call_userspace(BIN_CHMOD,
+			"755", BIN_SYSTOOLS_SH, "chmod systools sh");
 
-#if 0
+#ifdef USE_RESET_PROPS
 	// pixel4 stuff
 
 	// this part needs full permission, resetprop/setprop doesn't work with Kernel permissive for now
@@ -674,14 +731,29 @@ static void uci_user_listener(void) {
 }
 
 static bool kernellog = false;
+static bool wifi = false;
 static void uci_sys_listener(void) {
 	bool new_kernellog = !!uci_get_sys_property_int_mm("kernel_log", kernellog, 0, 1);
+	bool new_wifi = !!uci_get_sys_property_int_mm("wifi_connected", wifi, 0, 1);
+
 	if (new_kernellog!=kernellog) {
 		if (new_kernellog) {
 			schedule_work(&kernellog_call_work);
 		}
 		kernellog = new_kernellog;
 	}
+
+	if (new_wifi!=wifi) {
+		if (new_wifi) {
+			set_selinux_enforcing(false,false); // needs full permissive for dumpsys
+			sync_fs();
+			systools_call("wifi");
+			sync_fs();
+			set_selinux_enforcing(true,false);
+		}
+		wifi = new_wifi;
+	}
+
 }
 
 

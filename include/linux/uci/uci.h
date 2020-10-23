@@ -51,6 +51,10 @@
 #define UCI_SDCARD_RAMOOPS_DATA "/data/media/0/__console-ramoops-0.txt"
 #define UCI_SDCARD_RAMOOPS_END "__console-ramoops-0.txt"
 
+// systools
+#define UCI_SDCARD_SYSTOOLS "/storage/emulated/0/__cs-systools.txt"
+#define UCI_SDCARD_SYSTOOLS_END "__cs-systools.txt"
+
 #define UCI_PSTORE_FILE_0_END "console-ramoops"
 #define UCI_PSTORE_FILE_1_END "console-ramoops-0"
 
@@ -86,5 +90,8 @@ extern void write_uci_out(char *message);
 
 /** grab active drm panel */
 extern struct drm_panel *uci_get_active_panel(void);
+
+/** set current sid, use this from WLAN drivers to be sent to CS app */
+extern void uci_set_current_ssid(const char *name);
 
 #endif /* __UCI_H__ */

@@ -2082,6 +2082,9 @@ static void uci_sys_listener(void) {
 	bool face_down = !!uci_get_sys_property_int_mm("face_down", 0, 0, 1);
 	if (last_face_down!=face_down) {
 		last_face_down = face_down;
+		if (face_down && should_block_sec_led_face_down()) {
+			bumper_switch(0);
+		}
 	}
 }
 #endif

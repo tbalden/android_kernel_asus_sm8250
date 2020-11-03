@@ -27,10 +27,18 @@ static bool sec_led_on_strobe = false;
 static bool sec_led_block_proximity = false;
 static bool block_proximity = false;
 static int pwm_divider = 1;
+#define BACK_LED_ALWAYS 0
+#define BACK_LED_FACE_DOWN 1
+#define BACK_LED_NOT_FACE_DOWN 2
+#define BACK_LED_NEVER 3
+static int sec_led_face_down_setting = 0;
+static int primary_led_face_down_setting = 0;
 
 static bool led2_override_on = false;
 static bool breathe_on_strobe_on = false;
 static bool in_proximity = false;
+static bool last_face_down = 0;
+
 #endif
 
 #define FW_PATH "/asusfw/aura_sync/ENE-8K41-aura-V7.bin"
@@ -497,6 +505,35 @@ static int ene_UpdateFirmware(struct i2c_client *client, char *fw_buf)
 	kfree(buf);
 	return 0;
 }
+#ifdef CONFIG_UCI
+
+static bool should_block_sec_led_proximity(void) {
+	if (!in_proximity) return false;
+	if (sec_led_block_proximity || block_proximity) return true;
+	return false;
+}
+static bool should_block_primary_led_proximity(void) {
+	if (!in_proximity) return false;
+	if (block_proximity) return true;
+	return false;
+}
+
+static bool should_block_sec_led_face_down(void) {
+	if (sec_led_face_down_setting == BACK_LED_ALWAYS) return should_block_sec_led_proximity();
+	if (sec_led_face_down_setting == BACK_LED_FACE_DOWN && last_face_down) return false;
+	if (sec_led_face_down_setting == BACK_LED_NOT_FACE_DOWN && !last_face_down) return should_block_sec_led_proximity();
+	pr_info("%s blocking sec led face down, setting %d face down %d\n",__func__, sec_led_face_down_setting, last_face_down);
+	return true;
+}
+static bool should_block_primary_led_face_down(void) {
+	if (primary_led_face_down_setting == BACK_LED_NEVER) return true;
+	if (primary_led_face_down_setting == BACK_LED_ALWAYS) return should_block_primary_led_proximity();
+	if (primary_led_face_down_setting == BACK_LED_FACE_DOWN && last_face_down) return false;
+	if (primary_led_face_down_setting == BACK_LED_NOT_FACE_DOWN && !last_face_down) return should_block_primary_led_proximity();
+	pr_info("%s blocking sec led face down, setting %d face down %d\n",__func__, primary_led_face_down_setting, last_face_down);
+	return true;
+}
+#endif
 
 void bumper_switch(u32 val)
 {
@@ -510,7 +547,7 @@ void bumper_switch(u32 val)
 		printk("[AURA_SYNC] bumper_switch. %d, CSCmode %d\n", val, CSCmode);
 
 #ifdef CONFIG_UCI
-	if ((sec_led_block_proximity || block_proximity) && in_proximity) {
+	if (should_block_sec_led_face_down()) {
 		pr_info("%s in proximity, block bumper switch\n",__func__);
 		val = 0;
 	}
@@ -1141,7 +1178,7 @@ static ssize_t led_on_store(struct device *dev, struct device_attribute *attr, c
 	if (ret)
 		return ret;
 #ifdef CONFIG_UCI
-	if (block_proximity && in_proximity) {
+	if (should_block_primary_led_face_down()) {
 		pr_info("%s in proximity, block led on store\n",__func__);
 		val = 0;
 	}
@@ -1268,7 +1305,7 @@ static ssize_t led2_on_store(struct device *dev, struct device_attribute *attr, 
 	}
 #endif
 #ifdef CONFIG_UCI
-	if ((sec_led_block_proximity || block_proximity) && in_proximity) {
+	if (should_block_sec_led_face_down()) {
 		pr_info("%s in proximity, block led2 on store\n",__func__);
 		val = 0;
 	}
@@ -2037,6 +2074,15 @@ static void uci_user_listener(void) {
 	sec_led_block_proximity = !!uci_get_user_property_int_mm("back_led_sec_led_block_proximity", 0, 0, 1);
 	block_proximity = !!uci_get_user_property_int_mm("back_led_block_proximity", 0, 0, 1);
 	pwm_divider = uci_get_user_property_int_mm("back_led_pwm_divider", 1, 1, 4);
+	sec_led_face_down_setting = uci_get_user_property_int_mm("back_led_sec_led_face_down_setting", BACK_LED_ALWAYS, BACK_LED_ALWAYS, BACK_LED_NOT_FACE_DOWN);
+	primary_led_face_down_setting = uci_get_user_property_int_mm("back_led_primary_led_face_down_setting", BACK_LED_ALWAYS, BACK_LED_ALWAYS, BACK_LED_NEVER);
+}
+
+static void uci_sys_listener(void) {
+	bool face_down = !!uci_get_sys_property_int_mm("face_down", 0, 0, 1);
+	if (last_face_down!=face_down) {
+		last_face_down = face_down;
+	}
 }
 #endif
 
@@ -2223,6 +2269,7 @@ if (platform_data->aura_front_en != -ENOENT )
 
 #ifdef CONFIG_UCI
 	uci_add_user_listener(uci_user_listener);
+	uci_add_sys_listener(uci_sys_listener);
 #ifdef CONFIG_UCI_NOTIFICATIONS
         ntf_add_listener(ntf_listener);
 #endif

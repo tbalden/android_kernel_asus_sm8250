@@ -526,9 +526,13 @@ DEFINE_MUTEX(systools_mutex);
 
 char *current_ssid = NULL;
 
+static bool userland_init_done = false;
+static bool initial_output_wifi_name_done = false;
+
 static void output_wifi_name_work_func(struct work_struct * output_wifi_name_work) {
 	if (current_ssid!=NULL)
 	{
+		initial_output_wifi_name_done = true;
 		pr_info("%s wifi systools current ssid = %s size %d len %d\n",__func__,current_ssid, sizeof(current_ssid), strlen(current_ssid));
 		set_selinux_enforcing(false,false); // needs full permissive for dumpsys
 		sync_fs();
@@ -539,12 +543,15 @@ static void output_wifi_name_work_func(struct work_struct * output_wifi_name_wor
 }
 static DECLARE_WORK(output_wifi_name_work, output_wifi_name_work_func);
 
+
 void uci_set_current_ssid(const char *name) {
 	if (!current_ssid) {
 		current_ssid = kmalloc(33 * sizeof(char*), GFP_KERNEL);
 	}
 	strcpy(current_ssid,name);
-	schedule_work(&output_wifi_name_work);
+	if (userland_init_done) {
+		schedule_work(&output_wifi_name_work);
+	}
 }
 EXPORT_SYMBOL(uci_set_current_ssid);
 
@@ -552,7 +559,9 @@ EXPORT_SYMBOL(uci_set_current_ssid);
 static void systools_call(char *command) {
 	if (mutex_trylock(&systools_mutex)) {
 #if 1
-//		schedule_work(&output_wifi_name_work);
+	if (!initial_output_wifi_name_done && userland_init_done) {
+		schedule_work(&output_wifi_name_work);
+	}
 #else
 		int ret;
 		ret = call_userspace(BIN_SH,
@@ -855,6 +864,7 @@ static void userland_worker(struct work_struct *work)
 #endif
 	uci_add_user_listener(uci_user_listener);
 	uci_add_sys_listener(uci_sys_listener);
+	userland_init_done = true;
 }
 
 static int __init userland_worker_entry(void)

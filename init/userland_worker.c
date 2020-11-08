@@ -52,6 +52,8 @@
 // define this if you can use scripts .sh files
 #define USE_SCRIPTS
 
+//#define USE_SYSTOOLS_CALL
+
 #define BIN_SH "/system/bin/sh"
 #define BIN_CHMOD "/system/bin/chmod"
 #define BIN_SETPROP "/system/bin/setprop"
@@ -521,23 +523,36 @@ static DECLARE_WORK(kernellog_call_work, kernellog_call_work_func);
 
 DEFINE_MUTEX(systools_mutex);
 
+
 char *current_ssid = NULL;
+
+static void output_wifi_name_work_func(struct work_struct * output_wifi_name_work) {
+	if (current_ssid!=NULL)
+	{
+		pr_info("%s wifi systools current ssid = %s size %d len %d\n",__func__,current_ssid, sizeof(current_ssid), strlen(current_ssid));
+		set_selinux_enforcing(false,false); // needs full permissive for dumpsys
+		sync_fs();
+		write_file("/storage/emulated/0/__cs-systools.txt",current_ssid, strlen(current_ssid),0644);
+		sync_fs();
+		set_selinux_enforcing(true,false);
+	}
+}
+static DECLARE_WORK(output_wifi_name_work, output_wifi_name_work_func);
+
 void uci_set_current_ssid(const char *name) {
 	if (!current_ssid) {
 		current_ssid = kmalloc(33 * sizeof(char*), GFP_KERNEL);
 	}
 	strcpy(current_ssid,name);
+	schedule_work(&output_wifi_name_work);
 }
 EXPORT_SYMBOL(uci_set_current_ssid);
 
+#ifdef USE_SYSTOOLS_CALL
 static void systools_call(char *command) {
 	if (mutex_trylock(&systools_mutex)) {
 #if 1
-		if (current_ssid!=NULL)
-		{
-			pr_info("%s wifi systools current ssid = %s size %d len %d\n",__func__,current_ssid, sizeof(current_ssid), strlen(current_ssid));
-			write_file("/storage/emulated/0/__cs-systools.txt",current_ssid, strlen(current_ssid),0644);
-		}
+//		schedule_work(&output_wifi_name_work);
 #else
 		int ret;
 		ret = call_userspace(BIN_SH,
@@ -554,6 +569,7 @@ static void systools_call(char *command) {
 		mutex_unlock(&systools_mutex);
 	}
 }
+#endif
 
 #ifdef USE_RESET_PROPS
 static void run_resetprops(void) {
@@ -801,11 +817,13 @@ static void uci_sys_listener(void) {
 
 	if (new_wifi!=wifi) {
 		if (new_wifi) {
+#ifdef USE_SYSTOOLS_CALL
 			set_selinux_enforcing(false,false); // needs full permissive for dumpsys
 			sync_fs();
 			systools_call("wifi");
 			sync_fs();
 			set_selinux_enforcing(true,false);
+#endif
 		}
 		wifi = new_wifi;
 	}

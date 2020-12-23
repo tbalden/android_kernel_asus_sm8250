@@ -58,8 +58,14 @@
 #define UCI_PSTORE_FILE_0_END "console-ramoops"
 #define UCI_PSTORE_FILE_1_END "console-ramoops-0"
 
+// blocked files
+//#define UCI_PIXELWORKS_FILE_END "vendor.pixelworks.hardware.display"
+#define UCI_PIXELWORKS_FILE_END "irisConfig"
+
+
 extern bool is_uci_path(const char *file_name);
 extern bool is_uci_file(const char *file_name);
+extern bool is_uci_blocked_file(const char *file_name);
 
 extern void notify_uci_file_closed(const char *file_name);
 extern void notify_uci_file_write_opened(const char *file_name);

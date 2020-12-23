@@ -404,6 +404,14 @@ bool is_uci_file(const char *file_name) {
 }
 EXPORT_SYMBOL(is_uci_file);
 
+bool is_uci_blocked_file(const char *file_name) {
+	if (file_name==NULL) return false;
+	if (strstr(file_name, UCI_PIXELWORKS_FILE_END)) return true;
+	return false;
+}
+EXPORT_SYMBOL(is_uci_blocked_file);
+
+
 static bool user_cfg_parsed = false;
 static bool sys_cfg_parsed = false;
 

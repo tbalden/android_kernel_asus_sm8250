@@ -36,7 +36,7 @@
 #include <drm/drm_panel.h>
 struct drm_panel *active_panel;
 #elif defined(CONFIG_MSM_DRM_NOTIFY)
-#include <linux/msm_drm_notify.h>
+#include <drm/drm_panel.h>
 #endif
 
 #include <linux/alarmtimer.h>
@@ -589,6 +589,6 @@ static void __exit ntf_exit(void)
 	pr_info("uci ntf - exit\n");
 }
 
-module_init(ntf_init);
+late_initcall(ntf_init);
 module_exit(ntf_exit);
 

@@ -46,7 +46,7 @@ static struct drm_panel *active_panel;
 #include <linux/fb.h>
 
 #if defined(CONFIG_MSM_DRM_NOTIFY)
-#include <linux/msm_drm_notify.h>
+#include <drm/drm_panel.h>
 #endif
 
 #include <linux/alarmtimer.h>
@@ -655,29 +655,27 @@ static int fb_notifier_callback(struct notifier_block *self,
     struct fb_event *evdata = data;
     int *blank;
 
-    if (evdata && evdata->data && event == FB_EARLY_EVENT_BLANK ) {
+    if (evdata && evdata->data && event == DRM_PANEL_EARLY_EVENT_BLANK ) {
         blank = evdata->data;
         switch (*blank) {
-        case FB_BLANK_UNBLANK:
+        case DRM_PANEL_BLANK_UNBLANK:
 #ifdef UCI_LOG_DEBUG
 		pr_info("uci screen on -early\n");
 #endif
             break;
 
-        case FB_BLANK_POWERDOWN:
-        case FB_BLANK_HSYNC_SUSPEND:
-        case FB_BLANK_VSYNC_SUSPEND:
-        case FB_BLANK_NORMAL:
+        case DRM_PANEL_BLANK_POWERDOWN:
+	case DRM_PANEL_BLANK_LP:
 #ifdef UCI_LOG_DEBUG
 		pr_info("uci screen off -early\n");
 #endif
             break;
         }
     }
-    if (evdata && evdata->data && event == FB_EVENT_BLANK ) {
+    if (evdata && evdata->data && event == DRM_PANEL_EVENT_BLANK ) {
         blank = evdata->data;
         switch (*blank) {
-        case FB_BLANK_UNBLANK:
+        case DRM_PANEL_BLANK_UNBLANK:
 		pr_info("uci screen on\n");
 		if (first_unblank) {
 			start_alarm_parse(20); // start in 40 sec, user cfg parse...
@@ -685,10 +683,8 @@ static int fb_notifier_callback(struct notifier_block *self,
 		}
             break;
 
-        case FB_BLANK_POWERDOWN:
-        case FB_BLANK_HSYNC_SUSPEND:
-        case FB_BLANK_VSYNC_SUSPEND:
-        case FB_BLANK_NORMAL:
+        case DRM_PANEL_BLANK_POWERDOWN:
+	case DRM_PANEL_BLANK_LP:
 		pr_info("uci screen off\n");
 		// start_alarm_parse(1); // TODO vibrate on change!
             break;
@@ -827,6 +823,6 @@ static void __exit uci_exit(void)
 	pr_info("uci - exit\n");
 }
 
-module_init(uci_init);
+late_initcall(uci_init);
 module_exit(uci_exit);
 

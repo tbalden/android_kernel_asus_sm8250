@@ -26,7 +26,7 @@ export LD_LIBRARY_PATH=$BASE_PATH/clang-10/lib:$LD_LIBRARY_PATH
 
 echo "Generating binary conversions"
 cd binaries
-./convert
+#./convert
 cd ..
 
 echo
@@ -38,4 +38,4 @@ echo
 echo "Build The Good Stuff"
 echo 
 
-make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip O=out -j4
+make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip O=out -j8

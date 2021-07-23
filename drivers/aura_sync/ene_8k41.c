@@ -59,7 +59,7 @@ extern int lid2_status;
 extern bool g_Charger_mode;
 
 #define WAKELOCK_HOLD_TIME 200 /* in ms */
-static struct wakeup_source ene_wakelock;
+//static struct wakeup_source ene_wakelock;
 
 static int i2c_read_bytes(struct i2c_client *client, char *write_buf, int writelen, char *read_buf, int readlen)
 {
@@ -185,7 +185,7 @@ static int ene_GetFirmwareSize(char *firmware_name)
 		pr_err("error occured while opening file %s.\n", filepath);
 		return -EIO;
 	}
-	inode = pfile->f_dentry->d_inode;
+	inode = file_inode(pfile);
 	magic = inode->i_sb->s_magic;
 	fsize = inode->i_size;
 	filp_close(pfile, NULL);
@@ -211,7 +211,7 @@ static int ene_ReadFirmware(char *fw_name, unsigned char *fw_buf)
 		pr_err("error occured while opening file %s.\n", filepath);
 		return -EIO;
 	}
-	inode = pfile->f_dentry->d_inode;
+	inode = file_inode(pfile);
 	magic = inode->i_sb->s_magic;
 	fsize = inode->i_size;
 	old_fs = get_fs();
@@ -826,6 +826,7 @@ static ssize_t apply_show(struct device *dev, struct device_attribute *attr,char
 	mutex_unlock(&g_pdata->ene_mutex);
 	return snprintf(buf, PAGE_SIZE,"%d\n", data[0]);
 }
+
 static ssize_t mode_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct i2c_client *client = to_i2c_client(dev->parent);
@@ -1295,7 +1296,7 @@ static ssize_t led2_on_store(struct device *dev, struct device_attribute *attr, 
 	u32 val;
 	ssize_t ret;
 	int err = 0;
-	__pm_wakeup_event(&ene_wakelock, WAKELOCK_HOLD_TIME);
+	//__pm_wakeup_event(&ene_wakelock, WAKELOCK_HOLD_TIME);
 
 	ret = kstrtou32(buf, 10, &val);
 #ifdef CONFIG_UCI
@@ -1925,7 +1926,7 @@ static void aura_resume_work(struct work_struct *work)
 	int i=0;
 	u8 tmp=0;
 
-	wake_lock(&g_pdata->aura_wake_lock);
+	//__pm_stay_awake(&g_pdata->aura_wake_lock);
 	// Enable Bumper if in need
 	if(bumper_enable){
 		printk("[AURA_SYNC] aura_resume_work to enable bumper LED\n");
@@ -1950,7 +1951,7 @@ static void aura_resume_work(struct work_struct *work)
 		//if ((g_ASUS_hwID >= ZS660KL_EVB && g_ASUS_hwID < ZS660KL_ER2) || (g_ASUS_hwID >= ZS660KL_CN_EVB && g_ASUS_hwID < ZS660KL_CN_ER2))
 			//bumper_vdd_switch(1);
 	}
-	wake_unlock(&g_pdata->aura_wake_lock);
+	//__pm_relax(&g_pdata->aura_wake_lock);
 }
 
 // Check FW work
@@ -2093,7 +2094,7 @@ static int ene_8k41_probe(struct i2c_client *client, const struct i2c_device_id 
 {
 	int err = 0;
 	struct ene_8k41_platform_data *platform_data;
-	
+
 	printk("[AURA_SYNC] ene_8k41_probe.\n");
 
 	if(g_Charger_mode) {
@@ -2238,8 +2239,9 @@ if (platform_data->aura_front_en != -ENOENT )
 	INIT_WORK(&platform_data->resume_aura_work, aura_resume_work);
 
 // Init wake lock
-	wake_lock_init(&platform_data->aura_wake_lock, WAKE_LOCK_SUSPEND, "aura_wake_lock");
-	wakeup_source_init(&ene_wakelock, "ene_wakelock");
+	//wake_lock_init(&platform_data->aura_wake_lock, WAKE_LOCK_SUSPEND, "aura_wake_lock");
+	//wakeup_source_init(&platform_data->aura_wake_lock, "aura_wake_lock");
+	//wakeup_source_init(&ene_wakelock, "ene_wakelock");
 
 //#ifdef ASUS_FTM
 #if 0

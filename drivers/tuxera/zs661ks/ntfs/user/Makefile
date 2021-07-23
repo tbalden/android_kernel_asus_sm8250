@@ -1,6 +1,6 @@
 # Rules for making Tuxera NTFS.
 #
-# Copyright (c) 2009-2016 Anton Altaparmakov & Tuxera Inc. All rights reserved.
+# Copyright (c) 2009-2019 Anton Altaparmakov & Tuxera Inc. All rights reserved.
 #
 # You can set various options for the NTFS driver here:
 

@@ -1,6 +1,8 @@
 # Rules for making the exFAT driver.
 #
-# Copyright (c) 2009-2016 Anton Altaparmakov & Tuxera Inc. All rights reserved.
+# Copyright (c) 2009-2019 Tuxera Inc. All rights reserved.
+#
+# Author: Anton Altaparmakov
 #
 # You can set various options for the exFAT driver here:
 
@@ -22,6 +24,7 @@ obj-m += $(CONFIG_EXFAT_NAME).o
 $(CONFIG_EXFAT_NAME)-objs :=	aops.o \
 				bitmap.o \
 				chain.o \
+				common.o \
 				compat.o \
 				debug.o \
 				dir.o \

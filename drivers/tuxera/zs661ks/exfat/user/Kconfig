@@ -64,19 +64,3 @@ config EXFAT_NAME
 	  would not be possible to load the kernel module as the names would
 	  clash.
 
-config TUXERA_USERDEBUG
-	bool "Tuxera userdebug module for ASUS"
-	depends on NLS_UTF8
-	default n
-	help
-	  Say Y here if you want support Tuxera userdebug module
-	  Say N here if you want support Tuxera user module
-
-config TUXERA_ARM64
-	bool "Tuxera userdebug module for QCOM ARM64"
-	depends on NLS_UTF8
-	default n
-	help
-	  Say Y here if you want support Tuxera userdebug module at QCOM ARM64
-	  Say N here if you want support Tuxera user module at ACOM ARM32
-

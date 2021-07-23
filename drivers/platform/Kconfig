@@ -14,3 +14,4 @@ source "drivers/platform/mellanox/Kconfig"
 source "drivers/platform/msm/Kconfig"
 
 source "drivers/platform/asus/Kconfig"
+

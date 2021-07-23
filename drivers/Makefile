@@ -200,34 +200,25 @@ obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 
 obj-$(CONFIG_TSPDRV_AW8697)	+= motor/tspdrv_aw8697/
 
-#ASUS_BSP Vibrator +++
-obj-$(CONFIG_TSPDRV) += motor/tspdrv/
-#ASUS_BSP Vibrator ---
-
 # ASUS_BSP: AURA SYNC driver
 ifdef CONFIG_MACH_ASUS_ZS661KS
 obj-y				+= aura_sync/
 endif
 
-# ASUS_BSP: GamePad AuraLight driver
-ifdef CONFIG_MACH_ASUS_ZS661KS
-obj-y				+= gamepad_hid_driver/
-endif
-
-# ASUS_BSP Deeo : For ROG ACCY Driver
-ifdef CONFIG_MACH_ASUS_ZS661KS
-obj-y				+= ec_hid_driver/
-obj-y				+= dt_power/
-obj-y				+= fan/
-endif
-
 #Tuxera
 ifeq ($(ASUS_BUILD_PROJECT),ZS661KS)
-	ifdef CONFIG_TUXERA_USERDEBUG
+	ifeq ($(CONFIG_TUXERA_USERDEBUG),y)
 		obj-y				+= tuxera/zs661ks/exfat/userdebug/
 		obj-y				+= tuxera/zs661ks/ntfs/userdebug/
 	else
 		obj-y				+= tuxera/zs661ks/exfat/user/
 		obj-y				+= tuxera/zs661ks/ntfs/user/
 	endif
+endif
+
+ifdef CONFIG_MACH_ASUS_ZS661KS
+obj-y				+= ec_hid_driver/
+obj-y				+= gamepad_hid_driver/
+obj-y				+= dt_power/
+obj-y				+= fan/
 endif

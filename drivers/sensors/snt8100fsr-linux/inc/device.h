@@ -192,8 +192,8 @@ struct snt8100fsr {
 	int stuck_retry_count;
 	bool stuck_flag;
 	int stuck_retry_limit;
-	bool fw_sec_source;	// set true when v2.12.161 string is include in fw_version.txt
-	bool fw_info_check;	//set true after reading fw_version.txt at 'on boot' part
+	bool fw_sec_source;
+	bool fw_info_check;
 };
 
 enum{

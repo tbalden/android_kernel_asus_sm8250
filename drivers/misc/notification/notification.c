@@ -142,6 +142,13 @@ EXPORT_SYMBOL(ntf_is_charging);
 #ifdef CHARGE_STATE_ASYNC
 static struct workqueue_struct *uci_charge_state_async_wq;
 
+static void init_wq(void) {
+	if (uci_charge_state_async_wq==NULL) {
+		uci_charge_state_async_wq = alloc_workqueue("uci_charge_state_async_wq",
+			WQ_HIGHPRI | WQ_MEM_RECLAIM, 1);
+	}
+}
+
 static bool charge_state_async = true;
 
 static void uci_charge_state_async_func(struct work_struct * uci_charge_state_async_func_work)
@@ -167,6 +174,7 @@ void ntf_set_charge_state(bool on) {
 		pr_info("%s schedule async charge state work...\n",__func__);
 		charge_state_async = on;
 		cancel_delayed_work(&uci_charge_state_async_func_work);
+		init_wq();
 		queue_delayed_work(uci_charge_state_async_wq,&uci_charge_state_async_func_work,msecs_to_jiffies(CHARGE_STATE_ASYNC_DELAY_MSEC)); // Wait N msecs to make sure usb comm is done
 #endif
 		charge_state_changed = true;
@@ -574,8 +582,7 @@ static int __init ntf_init(void)
                 pr_err("Unable to register msm_drm_notifier: %d\n", rc);
 #endif
 #ifdef CHARGE_STATE_ASYNC
-	uci_charge_state_async_wq = alloc_workqueue("uci_charge_state_async_wq",
-		WQ_HIGHPRI | WQ_MEM_RECLAIM, 1);
+	init_wq();
 #endif
 
 	uci_add_sys_listener(uci_sys_listener);

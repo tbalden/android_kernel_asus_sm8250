@@ -198,6 +198,7 @@ obj-$(CONFIG_SIOX)		+= siox/
 obj-$(CONFIG_GNSS)		+= gnss/
 obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 
+obj-$(CONFIG_AW8697_HAPTIC) += motor/aw8697_haptic/
 obj-$(CONFIG_TSPDRV_AW8697)	+= motor/tspdrv_aw8697/
 
 # ASUS_BSP: AURA SYNC driver

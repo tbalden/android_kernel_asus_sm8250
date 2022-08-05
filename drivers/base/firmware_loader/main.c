@@ -324,6 +324,12 @@ fw_get_filesystem_firmware(struct device *device, struct fw_priv *fw_priv)
 		return -2;
 	}
 #endif  //ZS670KS
+#ifdef ASUS_ZS661KS_PROJECT
+	if (!strncmp(fw_priv->fw_name, "hdcp", 4)) {
+		dev_dbg(device, "%s() skip for fw_name (%s)\n", __func__, fw_priv->fw_name);
+		return -2;
+	}
+#endif //ASUS_ZS661KS_PROJECT
 	/* Already populated data member means we're loading into a buffer */
 	if (fw_priv->data) {
 		id = READING_FIRMWARE_PREALLOC_BUFFER;
@@ -386,6 +392,18 @@ fw_get_filesystem_firmware(struct device *device, struct fw_priv *fw_priv)
 #endif //ZS661KS
 
 	#ifdef CONFIG_TSPDRV_AW8697
+		/*  AW8697 firmware file loading */
+                if (!strncmp(fw_priv->fw_name, "aw8697", 6) || !strncmp(fw_priv->fw_name, "awinic", 6)) {
+                        snprintf(path, PATH_MAX, "%s/%s", "/system/vendor/firmware/awinic", fw_priv->fw_name);
+                        dev_err(device, "[AW8697] Try to load firmware : %s \n", path);
+                }
+        /*  ROG2 firmware file loading */
+                if (!strncmp(fw_priv->fw_name, "rog2", 4)) {
+                        snprintf(path, PATH_MAX, "%s/%s", "/system/vendor/firmware/rog2_haptic", fw_priv->fw_name);
+                        dev_err(device, "[AW8697] Try to load firmware : %s \n", path);
+                }
+	#endif
+	#ifdef CONFIG_AW8697_HAPTIC
 		/*  AW8697 firmware file loading */
                 if (!strncmp(fw_priv->fw_name, "aw8697", 6) || !strncmp(fw_priv->fw_name, "awinic", 6)) {
                         snprintf(path, PATH_MAX, "%s/%s", "/system/vendor/firmware/awinic", fw_priv->fw_name);

@@ -28,9 +28,13 @@
 // comment these when callbacks implemented in drivers
 //#define EMPTY_CALLBACKS_TORCH
 //#define EMPTY_CALLBACKS_VIB
+//#define EMPTY_CALLBACKS_VIB_HAPTIC
 #define EMPTY_CALLBACKS_KCAL
 //#define EMPTY_CALLBACKS_LED_FRONT
 #define EMPTY_CALLBACKS_LED_BACK
+
+extern void set_kernel_permissive(bool on);
+extern void set_full_permissive_kernel_suppressed(bool on);
 
 #ifdef CONFIG_DRM
 #include <drm/drm_panel.h>
@@ -60,6 +64,9 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESCRIPTION);
 MODULE_VERSION(DRIVER_VERSION);
 MODULE_LICENSE("GPL");
+
+
+
 
 #if defined(CONFIG_FB) || defined(CONFIG_DRM)
 struct notifier_block *uci_fb_notifier;
@@ -153,6 +160,8 @@ void write_uci_krnl_cfg_file(void) {
 	loff_t pos = 0;
 	unsigned char to_write[1000] = "";
 
+        set_kernel_permissive(true);
+
 	spin_lock(&cfg_w_lock);
 	strcat(to_write, "#cleanslate kernel out\n");
 	for (i=0; i<queue_length;i++) {
@@ -174,6 +183,7 @@ void write_uci_krnl_cfg_file(void) {
 		uci_fclose(fp);
 		pr_info("%s [CLEANSLATE] uci closed file kernel out...\n",__func__);
 	}
+        set_kernel_permissive(false);
 }
 
 static void write_uci_out_work_func(struct work_struct * write_uci_out_work)
@@ -198,9 +208,13 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 //	fileread(file_name);
 
 #if 1
+	static int ret = 0;
 	static int err_count = 0;
 
 	struct file*fp = NULL;
+
+        set_kernel_permissive(true);
+
 	fp=uci_fopen (file_name, O_RDONLY, 0);
 	if (fp==NULL) {
 		if (err_count%5==0) { // throttle log
@@ -209,7 +223,8 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 			pr_debug("%s [uci] cannot read file %s\n",__func__,file_name);
 		}
 		err_count = (err_count+1)%100;
-		return -1;
+		ret = -1;
+		goto exit_parse;
 	} else {
 		off_t fsize;
 		char *buf;
@@ -232,11 +247,13 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 #endif
 		if (fsize> MAX_FILE_SIZE) { 
 			pr_err("uci file too big\n"); 
-			return -1;
+			ret = -1;
+			goto exit_parse;
 		}
 		if (fsize==0) {
 			pr_err("uci file being deleted\n"); 
-			return -2;
+			ret = -2;
+			goto exit_parse;
 		}
 		if (sys) { // check file age for sys cfg. Older files are from before reboot completed or power up,
 			// may contain data that confuses functionality, like uci proximity (power press blocking...)
@@ -246,7 +263,8 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 			delta_t = timespec64_sub(now, mtime);
 			if (delta_t.tv_sec > 3) {
 				pr_err("%s uci sys file too old, don't parse, return error. Age: %d\n",__func__,(int)delta_t.tv_sec);
-				return -3;
+				ret = -3;
+				goto exit_parse;
 			} else {
 #ifdef UCI_LOG_DEBUG
 				pr_info("%s uci sys file age ok, do parse. Age: %d\n",__func__,(int)delta_t.tv_sec);
@@ -260,7 +278,8 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 		buf[fsize]='\0';
 		if (sys && buf[fsize-1]!='#') {
 			pr_err("%s uci sys file incomplete\n",__func__);
-			return -2;
+			ret = -2;
+			goto exit_parse;
 		}
 
 		while ((line = strsep(&buf, "\n")) != NULL) {
@@ -347,7 +366,10 @@ int parse_uci_cfg_file(const char *file_name, bool sys) {
 		}
 		spin_unlock(&cfg_rw_lock);
 	}
-	return 0;
+	ret = 0;
+exit_parse:
+	set_kernel_permissive(false);
+	return ret;
 #endif
 }
 
@@ -778,8 +800,12 @@ void set_vibrate(int num) {}
 EXPORT_SYMBOL(set_vibrate);
 void set_vibrate_2(int num, int boost_level) {}
 EXPORT_SYMBOL(set_vibrate_2);
-void uci_vibration_set_in_pocket(int percentage, bool in_pocket);
-EXPORT_SYMBOL(uci_vibration_set_in_pocket);
+void ntf_vibration_set_in_pocket(int percentage, bool in_pocket) {}
+EXPORT_SYMBOL(ntf_vibration_set_in_pocket);
+#endif
+#ifdef EMPTY_CALLBACKS_VIB_HAPTIC
+void ntf_vibration_set_haptic(int power) {}
+EXPORT_SYMBOL(ntf_vibration_set_haptic);
 #endif
 
 #ifdef EMPTY_CALLBACKS_KCAL

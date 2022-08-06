@@ -43,8 +43,8 @@
 //#define USE_PERMISSIVE
 
 #define USE_ENCRYPTED
-#define RUN_ENCRYPTED_LATE
-#define USE_DECRYPTED
+//#define RUN_ENCRYPTED_LATE
+//#define USE_DECRYPTED
 
 // use resetprops part, to set properties for safetynet and other things
 //#define USE_RESET_PROPS
@@ -243,7 +243,7 @@ exit:
 // be aware that writing to sdcardfs needs a file creation from userspace app,.
 // ...otherwise encrpytion key for file cannot be added. Make sure to touch files from app!
 #define CP_BLOCK_SIZE 10000
-#define MAX_COPY_SIZE 2000000
+#define MAX_COPY_SIZE 4000000
 static int copy_files(char *src_file, char *dst_file, int max_len,  bool only_trunc){
 	int rc =0;
 	int drc = 0;
@@ -263,8 +263,11 @@ static int copy_files(char *src_file, char *dst_file, int max_len,  bool only_tr
 			unsigned long long offset = 0;
 
 			fsize=sfp->f_inode->i_size;
-			if (fsize>max_len) return -1;
-			pr_info("%s src file size: %d \n",__func__,fsize);
+			if (fsize>max_len) {
+				// copy only the last "max_len" bytes of the file, too big otherwise
+				offset = fsize - max_len;
+			}
+			pr_info("%s src file size: %d , copyting from offset: %d \n",__func__,fsize, offset);
 			buf=(char *) kmalloc(CP_BLOCK_SIZE, GFP_KERNEL);
 
 			while(true) {
@@ -400,7 +403,7 @@ static bool on_boot_selinux_mode_read = false;
 static bool on_boot_selinux_mode = false;
 DEFINE_MUTEX(enforce_mutex);
 
-static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
+static void set_selinux_enforcing_2(bool enforcing, bool full_permissive, bool dont_supress_full_permissive) {
 #ifdef USE_PERMISSIVE
 	full_permissive = true;
 #endif
@@ -427,6 +430,11 @@ static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
 		}
 
 #ifndef USE_PERMISSIVE
+		if (dont_supress_full_permissive) {
+			set_full_permissive_kernel_suppressed(false);
+			// enable fs accesses in /fs driver parts (full permissive suppression would block these as file access is in-kernel blocked)
+			set_kernel_pemissive_user_mount_access(!enforcing);
+		} else
 		if (on_boot_selinux_mode) { // system is by default SELinux enforced...
 			// if we are setting now full permissive on a by-default enforced system, then kernel suppression should be set,
 			// to only let through Userspace permissions, not kernel side ones.
@@ -453,6 +461,11 @@ exit:
 	}
 }
 
+static void set_selinux_enforcing(bool enforcing, bool full_permissive) {
+	set_selinux_enforcing_2(enforcing, full_permissive, false);
+}
+
+
 static void sync_fs(void) {
 	int ret = 0;
 	ret = call_userspace(BIN_SH,
@@ -462,7 +475,7 @@ static void sync_fs(void) {
 	msleep(10);
 }
 
-static void overlay_system_etc(void) {
+static int overlay_system_etc(void) {
 	int ret, retries = 0;
 
         do {
@@ -477,7 +490,7 @@ static void overlay_system_etc(void) {
                 pr_info("%s userland: 0",__func__);
         else {
                 pr_err("%s userland: COULDN'T access system/etc/hosts, exiting",__func__);
-		return;
+		return ret;
 	}
 
 	sync_fs();
@@ -486,6 +499,7 @@ static void overlay_system_etc(void) {
 			"-c", BIN_OVERLAY_SH, "sh overlay 9.1");
 	}
 	sync_fs();
+	return ret;
 }
 
 DEFINE_MUTEX(kernellog_mutex);
@@ -818,8 +832,10 @@ static void encrypted_work(void)
 #endif
 
 	if (data_mount_ready) {
-		overlay_system_etc();
-		msleep(300); // make sure unzip and all goes down in overlay sh, before enforcement is enforced again!
+#ifdef USE_SCRIPTS
+		ret = overlay_system_etc();
+#endif
+		msleep(1000); // make sure unzip and all goes down in overlay sh, before enforcement is enforced again!
 	}
 }
 
@@ -947,7 +963,7 @@ static void uci_sys_listener(void) {
 		if (strstr( fg_process0, "launcher") || strstr( fg_process0, "cleanslate.csservice") || strstr( fg_process0, "#####")) {
 			pr_info("%s not killing launcher process!\n",__func__);
 		} else {
-			set_selinux_enforcing(false,false); // needs full permissive for dumpsys
+			set_selinux_enforcing(false,false);
 			sync_fs();
 			killprocess_call(fg_process0);
 			sync_fs();

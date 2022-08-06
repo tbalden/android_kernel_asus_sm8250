@@ -2703,9 +2703,9 @@ static void uci_vibrate_func(struct work_struct * uci_vibrate_func_work)
 				}
 				aw8697_haptic_set_gain(g_aw8697, g_aw8697->gain);
 				if (boost_level>=80) {
-					aw8697_haptic_set_wav_seq(g_aw8697, 0, (unsigned char)16);
+					aw8697_haptic_set_wav_seq(g_aw8697, 0, (unsigned char)16); // 14 punchier
 				} else {
-					aw8697_haptic_set_wav_seq(g_aw8697, 0, (unsigned char)10);
+					aw8697_haptic_set_wav_seq(g_aw8697, 0, (unsigned char)7); // 16 punchy
 				}
 			} else {
 				g_aw8697->gain = 47;

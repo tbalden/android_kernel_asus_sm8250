@@ -1574,10 +1574,10 @@ static void ts_poke_emulate(struct work_struct * ts_poke_emulate_work) {
 				if (first_steps) {
 //#ifndef CONFIG_IFILTER_TS_PRESSURE
 					ts_track_event_gather(EV_KEY, BTN_TOUCH, 1);
-					ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 1);
+//					ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 1);
 //#endif
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT, ++local_slot);
-					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, local_slot);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT, ++local_slot);
+					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, ++local_slot);
 					first_steps = 0;
 				} else {
 					if (!second_step_done) {
@@ -1616,7 +1616,7 @@ static void ts_poke_emulate(struct work_struct * ts_poke_emulate_work) {
 			}
 //#ifndef CONFIG_IFILTER_TS_PRESSURE
 			ts_track_event_gather(EV_KEY, BTN_TOUCH, 0);
-			ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 0);
+//			ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 0);
 //#endif
 			ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, -1);
 			ts_track_event_gather(EV_SYN, 0, 0);
@@ -1628,13 +1628,13 @@ static void ts_poke_emulate(struct work_struct * ts_poke_emulate_work) {
 				empty_check_count++;
 				if (empty_check_count%100==30) {
 					pr_info("%s ts_check || fallback\n",__func__);
-					input_event(ts_device,EV_ABS,ABS_MT_SLOT,0);
+//					input_event(ts_device,EV_ABS,ABS_MT_SLOT,0);
 					input_event(ts_device,EV_ABS,ABS_MT_TRACKING_ID,-1);
 					input_event(ts_device,EV_SYN,0,0);
 					msleep(5);
 
 					ts_track_event_clear(true);
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,31);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,31);
 					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, highest_mt_slot+1);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 0);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_Y, 0);
@@ -1662,7 +1662,7 @@ static void ts_poke_emulate(struct work_struct * ts_poke_emulate_work) {
 					msleep(10);
 
 					ts_track_event_clear(true);
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,30);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,30);
 					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, highest_mt_slot);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 1);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_Y, 1);
@@ -1887,18 +1887,18 @@ static void ts_scroll_emulate(int down, int full) {
 					ts_track_event_gather(EV_KEY, BTN_TOUCH, 1);
 #if 0
 // rog3 not
-					ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 1);
+//					ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 1);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT, --local_slot);
 #endif
 //#endif
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT, --local_slot);
-					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, local_slot);
+					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, --local_slot);
 //#ifdef CONFIG_IFILTER_TS_PRESSURE
 					ts_track_event_gather(EV_ABS, ABS_MT_PRESSURE, y_pressure+ (pseudo_rnd%2));
 //#else
 					ts_track_event_gather(EV_ABS, ABS_MT_TOUCH_MAJOR, y_pressure + (pseudo_rnd%2));
 #if 0
 // rog3 not
-					ts_track_event_gather(EV_ABS, ABS_MT_TOUCH_MINOR, 3+ (pseudo_rnd%2));
+//					ts_track_event_gather(EV_ABS, ABS_MT_TOUCH_MINOR, 3+ (pseudo_rnd%2));
 #endif
 //#endif
 					first_steps = 0;
@@ -1910,7 +1910,7 @@ static void ts_scroll_emulate(int down, int full) {
 					ts_track_event_clear(false);
 				}
 #if 0
-				ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 800+ (pseudo_rnd++)%6);
+//				ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 800+ (pseudo_rnd++)%6);
 #endif
 #if 1
 // 1080p
@@ -1951,7 +1951,7 @@ static void ts_scroll_emulate(int down, int full) {
 			ts_track_event_gather(EV_KEY, BTN_TOUCH, 0);
 #if 0
 // rog3 not
-			ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 0);
+//			ts_track_event_gather(EV_KEY, BTN_TOOL_FINGER, 0);
 #endif
 //#endif
 			ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, -1);
@@ -1964,13 +1964,13 @@ static void ts_scroll_emulate(int down, int full) {
 				empty_check_count++;
 				if (empty_check_count%100==30) {
 					pr_info("%s ts_check || fallback\n",__func__);
-					input_event(ts_device,EV_ABS,ABS_MT_SLOT,0);
+//					input_event(ts_device,EV_ABS,ABS_MT_SLOT,0);
 					input_event(ts_device,EV_ABS,ABS_MT_TRACKING_ID,-1);
 					input_event(ts_device,EV_SYN,0,0);
 					msleep(5);
 
 					ts_track_event_clear(true);
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,31);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,31);
 					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, highest_mt_slot+1);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 0);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_Y, 0);
@@ -1998,7 +1998,7 @@ static void ts_scroll_emulate(int down, int full) {
 					msleep(10);
 
 					ts_track_event_clear(true);
-					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,30);
+//					ts_track_event_gather(EV_ABS, ABS_MT_SLOT,30);
 					ts_track_event_gather(EV_ABS, ABS_MT_TRACKING_ID, highest_mt_slot);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_X, 1);
 					ts_track_event_gather(EV_ABS, ABS_MT_POSITION_Y, 1);
